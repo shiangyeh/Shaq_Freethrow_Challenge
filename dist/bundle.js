@@ -77,11 +77,11 @@
 
 	var _physics2 = _interopRequireDefault(_physics);
 
-	var _hoop = __webpack_require__(57);
+	var _hoop = __webpack_require__(37);
 
 	var _hoop2 = _interopRequireDefault(_hoop);
 
-	var _ball = __webpack_require__(58);
+	var _ball = __webpack_require__(38);
 
 	var _ball2 = _interopRequireDefault(_ball);
 
@@ -23462,9 +23462,8 @@
 /* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*eslint-disable no-unused-vars*/
-	/*!
-	 * jQuery JavaScript Library v3.1.0
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
+	 * jQuery JavaScript Library v3.1.1
 	 * https://jquery.com/
 	 *
 	 * Includes Sizzle.js
@@ -23474,7 +23473,7 @@
 	 * Released under the MIT license
 	 * https://jquery.org/license
 	 *
-	 * Date: 2016-07-07T21:44Z
+	 * Date: 2016-09-22T22:30Z
 	 */
 	( function( global, factory ) {
 
@@ -23547,13 +23546,13 @@
 			doc.head.appendChild( script ).parentNode.removeChild( script );
 		}
 	/* global Symbol */
-	// Defining this global in .eslintrc would create a danger of using the global
+	// Defining this global in .eslintrc.json would create a danger of using the global
 	// unguarded in another place, it seems safer to define global only for this module
 
 
 
 	var
-		version = "3.1.0",
+		version = "3.1.1",
 
 		// Define a local copy of jQuery
 		jQuery = function( selector, context ) {
@@ -23593,13 +23592,14 @@
 		// Get the Nth element in the matched element set OR
 		// Get the whole matched element set as a clean array
 		get: function( num ) {
-			return num != null ?
 
-				// Return just the one element from the set
-				( num < 0 ? this[ num + this.length ] : this[ num ] ) :
+			// Return all the elements in a clean array
+			if ( num == null ) {
+				return slice.call( this );
+			}
 
-				// Return all the elements in a clean array
-				slice.call( this );
+			// Return just the one element from the set
+			return num < 0 ? this[ num + this.length ] : this[ num ];
 		},
 
 		// Take an array of elements and push it onto the stack
@@ -24007,14 +24007,14 @@
 	}
 	var Sizzle =
 	/*!
-	 * Sizzle CSS Selector Engine v2.3.0
+	 * Sizzle CSS Selector Engine v2.3.3
 	 * https://sizzlejs.com/
 	 *
 	 * Copyright jQuery Foundation and other contributors
 	 * Released under the MIT license
 	 * http://jquery.org/license
 	 *
-	 * Date: 2016-01-04
+	 * Date: 2016-08-08
 	 */
 	(function( window ) {
 
@@ -24160,7 +24160,7 @@
 
 		// CSS string/identifier serialization
 		// https://drafts.csswg.org/cssom/#common-serializing-idioms
-		rcssescape = /([\0-\x1f\x7f]|^-?\d)|^-$|[^\x80-\uFFFF\w-]/g,
+		rcssescape = /([\0-\x1f\x7f]|^-?\d)|^-$|[^\0-\x1f\x7f-\uFFFF\w-]/g,
 		fcssescape = function( ch, asCodePoint ) {
 			if ( asCodePoint ) {
 
@@ -24187,7 +24187,7 @@
 
 		disabledAncestor = addCombinator(
 			function( elem ) {
-				return elem.disabled === true;
+				return elem.disabled === true && ("form" in elem || "label" in elem);
 			},
 			{ dir: "parentNode", next: "legend" }
 		);
@@ -24473,26 +24473,54 @@
 	 * @param {Boolean} disabled true for :disabled; false for :enabled
 	 */
 	function createDisabledPseudo( disabled ) {
-		// Known :disabled false positives:
-		// IE: *[disabled]:not(button, input, select, textarea, optgroup, option, menuitem, fieldset)
-		// not IE: fieldset[disabled] > legend:nth-of-type(n+2) :can-disable
+
+		// Known :disabled false positives: fieldset[disabled] > legend:nth-of-type(n+2) :can-disable
 		return function( elem ) {
 
-			// Check form elements and option elements for explicit disabling
-			return "label" in elem && elem.disabled === disabled ||
-				"form" in elem && elem.disabled === disabled ||
+			// Only certain elements can match :enabled or :disabled
+			// https://html.spec.whatwg.org/multipage/scripting.html#selector-enabled
+			// https://html.spec.whatwg.org/multipage/scripting.html#selector-disabled
+			if ( "form" in elem ) {
 
-				// Check non-disabled form elements for fieldset[disabled] ancestors
-				"form" in elem && elem.disabled === false && (
-					// Support: IE6-11+
-					// Ancestry is covered for us
-					elem.isDisabled === disabled ||
+				// Check for inherited disabledness on relevant non-disabled elements:
+				// * listed form-associated elements in a disabled fieldset
+				//   https://html.spec.whatwg.org/multipage/forms.html#category-listed
+				//   https://html.spec.whatwg.org/multipage/forms.html#concept-fe-disabled
+				// * option elements in a disabled optgroup
+				//   https://html.spec.whatwg.org/multipage/forms.html#concept-option-disabled
+				// All such elements have a "form" property.
+				if ( elem.parentNode && elem.disabled === false ) {
 
-					// Otherwise, assume any non-<option> under fieldset[disabled] is disabled
-					/* jshint -W018 */
-					elem.isDisabled !== !disabled &&
-						("label" in elem || !disabledAncestor( elem )) !== disabled
-				);
+					// Option elements defer to a parent optgroup if present
+					if ( "label" in elem ) {
+						if ( "label" in elem.parentNode ) {
+							return elem.parentNode.disabled === disabled;
+						} else {
+							return elem.disabled === disabled;
+						}
+					}
+
+					// Support: IE 6 - 11
+					// Use the isDisabled shortcut property to check for disabled fieldset ancestors
+					return elem.isDisabled === disabled ||
+
+						// Where there is no isDisabled, check manually
+						/* jshint -W018 */
+						elem.isDisabled !== !disabled &&
+							disabledAncestor( elem ) === disabled;
+				}
+
+				return elem.disabled === disabled;
+
+			// Try to winnow out elements that can't be disabled before trusting the disabled property.
+			// Some victims get caught in our net (label, legend, menu, track), but it shouldn't
+			// even exist on them, let alone have a boolean value.
+			} else if ( "label" in elem ) {
+				return elem.disabled === disabled;
+			}
+
+			// Remaining elements are neither :enabled nor :disabled
+			return false;
 		};
 	}
 
@@ -24608,25 +24636,21 @@
 			return !document.getElementsByName || !document.getElementsByName( expando ).length;
 		});
 
-		// ID find and filter
+		// ID filter and find
 		if ( support.getById ) {
-			Expr.find["ID"] = function( id, context ) {
-				if ( typeof context.getElementById !== "undefined" && documentIsHTML ) {
-					var m = context.getElementById( id );
-					return m ? [ m ] : [];
-				}
-			};
 			Expr.filter["ID"] = function( id ) {
 				var attrId = id.replace( runescape, funescape );
 				return function( elem ) {
 					return elem.getAttribute("id") === attrId;
 				};
 			};
+			Expr.find["ID"] = function( id, context ) {
+				if ( typeof context.getElementById !== "undefined" && documentIsHTML ) {
+					var elem = context.getElementById( id );
+					return elem ? [ elem ] : [];
+				}
+			};
 		} else {
-			// Support: IE6/7
-			// getElementById is not reliable as a find shortcut
-			delete Expr.find["ID"];
-
 			Expr.filter["ID"] =  function( id ) {
 				var attrId = id.replace( runescape, funescape );
 				return function( elem ) {
@@ -24634,6 +24658,36 @@
 						elem.getAttributeNode("id");
 					return node && node.value === attrId;
 				};
+			};
+
+			// Support: IE 6 - 7 only
+			// getElementById is not reliable as a find shortcut
+			Expr.find["ID"] = function( id, context ) {
+				if ( typeof context.getElementById !== "undefined" && documentIsHTML ) {
+					var node, i, elems,
+						elem = context.getElementById( id );
+
+					if ( elem ) {
+
+						// Verify the id attribute
+						node = elem.getAttributeNode("id");
+						if ( node && node.value === id ) {
+							return [ elem ];
+						}
+
+						// Fall back on getElementsByName
+						elems = context.getElementsByName( id );
+						i = 0;
+						while ( (elem = elems[i++]) ) {
+							node = elem.getAttributeNode("id");
+							if ( node && node.value === id ) {
+								return [ elem ];
+							}
+						}
+					}
+
+					return [];
+				}
 			};
 		}
 
@@ -25675,6 +25729,7 @@
 						return matcher( elem, context, xml );
 					}
 				}
+				return false;
 			} :
 
 			// Check against all ancestor/preceding elements
@@ -25719,6 +25774,7 @@
 						}
 					}
 				}
+				return false;
 			};
 	}
 
@@ -26081,8 +26137,7 @@
 			// Reduce context if the leading compound selector is an ID
 			tokens = match[0] = match[0].slice( 0 );
 			if ( tokens.length > 2 && (token = tokens[0]).type === "ID" &&
-					support.getById && context.nodeType === 9 && documentIsHTML &&
-					Expr.relative[ tokens[1].type ] ) {
+					context.nodeType === 9 && documentIsHTML && Expr.relative[ tokens[1].type ] ) {
 
 				context = ( Expr.find["ID"]( token.matches[0].replace(runescape, funescape), context ) || [] )[0];
 				if ( !context ) {
@@ -26264,24 +26319,29 @@
 			return jQuery.grep( elements, function( elem, i ) {
 				return !!qualifier.call( elem, i, elem ) !== not;
 			} );
-
 		}
 
+		// Single element
 		if ( qualifier.nodeType ) {
 			return jQuery.grep( elements, function( elem ) {
 				return ( elem === qualifier ) !== not;
 			} );
-
 		}
 
-		if ( typeof qualifier === "string" ) {
-			if ( risSimple.test( qualifier ) ) {
-				return jQuery.filter( qualifier, elements, not );
-			}
-
-			qualifier = jQuery.filter( qualifier, elements );
+		// Arraylike of elements (jQuery, arguments, Array)
+		if ( typeof qualifier !== "string" ) {
+			return jQuery.grep( elements, function( elem ) {
+				return ( indexOf.call( qualifier, elem ) > -1 ) !== not;
+			} );
 		}
 
+		// Simple selector that can be filtered directly, removing non-Elements
+		if ( risSimple.test( qualifier ) ) {
+			return jQuery.filter( qualifier, elements, not );
+		}
+
+		// Complex selector, compare the two sets, removing non-Elements
+		qualifier = jQuery.filter( qualifier, elements );
 		return jQuery.grep( elements, function( elem ) {
 			return ( indexOf.call( qualifier, elem ) > -1 ) !== not && elem.nodeType === 1;
 		} );
@@ -26294,11 +26354,13 @@
 			expr = ":not(" + expr + ")";
 		}
 
-		return elems.length === 1 && elem.nodeType === 1 ?
-			jQuery.find.matchesSelector( elem, expr ) ? [ elem ] : [] :
-			jQuery.find.matches( expr, jQuery.grep( elems, function( elem ) {
-				return elem.nodeType === 1;
-			} ) );
+		if ( elems.length === 1 && elem.nodeType === 1 ) {
+			return jQuery.find.matchesSelector( elem, expr ) ? [ elem ] : [];
+		}
+
+		return jQuery.find.matches( expr, jQuery.grep( elems, function( elem ) {
+			return elem.nodeType === 1;
+		} ) );
 	};
 
 	jQuery.fn.extend( {
@@ -26626,14 +26688,14 @@
 			return this.pushStack( matched );
 		};
 	} );
-	var rnotwhite = ( /\S+/g );
+	var rnothtmlwhite = ( /[^\x20\t\r\n\f]+/g );
 
 
 
 	// Convert String-formatted options into Object-formatted ones
 	function createOptions( options ) {
 		var object = {};
-		jQuery.each( options.match( rnotwhite ) || [], function( _, flag ) {
+		jQuery.each( options.match( rnothtmlwhite ) || [], function( _, flag ) {
 			object[ flag ] = true;
 		} );
 		return object;
@@ -27398,13 +27460,16 @@
 			}
 		}
 
-		return chainable ?
-			elems :
+		if ( chainable ) {
+			return elems;
+		}
 
-			// Gets
-			bulk ?
-				fn.call( elems ) :
-				len ? fn( elems[ 0 ], key ) : emptyGet;
+		// Gets
+		if ( bulk ) {
+			return fn.call( elems );
+		}
+
+		return len ? fn( elems[ 0 ], key ) : emptyGet;
 	};
 	var acceptData = function( owner ) {
 
@@ -27541,7 +27606,7 @@
 					// Otherwise, create an array by matching non-whitespace
 					key = key in cache ?
 						[ key ] :
-						( key.match( rnotwhite ) || [] );
+						( key.match( rnothtmlwhite ) || [] );
 				}
 
 				i = key.length;
@@ -27589,6 +27654,31 @@
 	var rbrace = /^(?:\{[\w\W]*\}|\[[\w\W]*\])$/,
 		rmultiDash = /[A-Z]/g;
 
+	function getData( data ) {
+		if ( data === "true" ) {
+			return true;
+		}
+
+		if ( data === "false" ) {
+			return false;
+		}
+
+		if ( data === "null" ) {
+			return null;
+		}
+
+		// Only convert to a number if it doesn't change the string
+		if ( data === +data + "" ) {
+			return +data;
+		}
+
+		if ( rbrace.test( data ) ) {
+			return JSON.parse( data );
+		}
+
+		return data;
+	}
+
 	function dataAttr( elem, key, data ) {
 		var name;
 
@@ -27600,14 +27690,7 @@
 
 			if ( typeof data === "string" ) {
 				try {
-					data = data === "true" ? true :
-						data === "false" ? false :
-						data === "null" ? null :
-
-						// Only convert to a number if it doesn't change the string
-						+data + "" === data ? +data :
-						rbrace.test( data ) ? JSON.parse( data ) :
-						data;
+					data = getData( data );
 				} catch ( e ) {}
 
 				// Make sure we set the data so it isn't changed later
@@ -27984,7 +28067,7 @@
 			return display;
 		}
 
-		temp = doc.body.appendChild( doc.createElement( nodeName ) ),
+		temp = doc.body.appendChild( doc.createElement( nodeName ) );
 		display = jQuery.css( temp, "display" );
 
 		temp.parentNode.removeChild( temp );
@@ -28102,15 +28185,23 @@
 
 		// Support: IE <=9 - 11 only
 		// Use typeof to avoid zero-argument method invocation on host objects (#15151)
-		var ret = typeof context.getElementsByTagName !== "undefined" ?
-				context.getElementsByTagName( tag || "*" ) :
-				typeof context.querySelectorAll !== "undefined" ?
-					context.querySelectorAll( tag || "*" ) :
-				[];
+		var ret;
 
-		return tag === undefined || tag && jQuery.nodeName( context, tag ) ?
-			jQuery.merge( [ context ], ret ) :
-			ret;
+		if ( typeof context.getElementsByTagName !== "undefined" ) {
+			ret = context.getElementsByTagName( tag || "*" );
+
+		} else if ( typeof context.querySelectorAll !== "undefined" ) {
+			ret = context.querySelectorAll( tag || "*" );
+
+		} else {
+			ret = [];
+		}
+
+		if ( tag === undefined || tag && jQuery.nodeName( context, tag ) ) {
+			return jQuery.merge( [ context ], ret );
+		}
+
+		return ret;
 	}
 
 
@@ -28384,7 +28475,7 @@
 			}
 
 			// Handle multiple events separated by a space
-			types = ( types || "" ).match( rnotwhite ) || [ "" ];
+			types = ( types || "" ).match( rnothtmlwhite ) || [ "" ];
 			t = types.length;
 			while ( t-- ) {
 				tmp = rtypenamespace.exec( types[ t ] ) || [];
@@ -28466,7 +28557,7 @@
 			}
 
 			// Once for each type.namespace in types; type may be omitted
-			types = ( types || "" ).match( rnotwhite ) || [ "" ];
+			types = ( types || "" ).match( rnothtmlwhite ) || [ "" ];
 			t = types.length;
 			while ( t-- ) {
 				tmp = rtypenamespace.exec( types[ t ] ) || [];
@@ -28592,51 +28683,58 @@
 		},
 
 		handlers: function( event, handlers ) {
-			var i, matches, sel, handleObj,
+			var i, handleObj, sel, matchedHandlers, matchedSelectors,
 				handlerQueue = [],
 				delegateCount = handlers.delegateCount,
 				cur = event.target;
 
-			// Support: IE <=9
 			// Find delegate handlers
-			// Black-hole SVG <use> instance trees (#13180)
-			//
-			// Support: Firefox <=42
-			// Avoid non-left-click in FF but don't block IE radio events (#3861, gh-2343)
-			if ( delegateCount && cur.nodeType &&
-				( event.type !== "click" || isNaN( event.button ) || event.button < 1 ) ) {
+			if ( delegateCount &&
+
+				// Support: IE <=9
+				// Black-hole SVG <use> instance trees (trac-13180)
+				cur.nodeType &&
+
+				// Support: Firefox <=42
+				// Suppress spec-violating clicks indicating a non-primary pointer button (trac-3861)
+				// https://www.w3.org/TR/DOM-Level-3-Events/#event-type-click
+				// Support: IE 11 only
+				// ...but not arrow key "clicks" of radio inputs, which can have `button` -1 (gh-2343)
+				!( event.type === "click" && event.button >= 1 ) ) {
 
 				for ( ; cur !== this; cur = cur.parentNode || this ) {
 
 					// Don't check non-elements (#13208)
 					// Don't process clicks on disabled elements (#6911, #8165, #11382, #11764)
-					if ( cur.nodeType === 1 && ( cur.disabled !== true || event.type !== "click" ) ) {
-						matches = [];
+					if ( cur.nodeType === 1 && !( event.type === "click" && cur.disabled === true ) ) {
+						matchedHandlers = [];
+						matchedSelectors = {};
 						for ( i = 0; i < delegateCount; i++ ) {
 							handleObj = handlers[ i ];
 
 							// Don't conflict with Object.prototype properties (#13203)
 							sel = handleObj.selector + " ";
 
-							if ( matches[ sel ] === undefined ) {
-								matches[ sel ] = handleObj.needsContext ?
+							if ( matchedSelectors[ sel ] === undefined ) {
+								matchedSelectors[ sel ] = handleObj.needsContext ?
 									jQuery( sel, this ).index( cur ) > -1 :
 									jQuery.find( sel, this, null, [ cur ] ).length;
 							}
-							if ( matches[ sel ] ) {
-								matches.push( handleObj );
+							if ( matchedSelectors[ sel ] ) {
+								matchedHandlers.push( handleObj );
 							}
 						}
-						if ( matches.length ) {
-							handlerQueue.push( { elem: cur, handlers: matches } );
+						if ( matchedHandlers.length ) {
+							handlerQueue.push( { elem: cur, handlers: matchedHandlers } );
 						}
 					}
 				}
 			}
 
 			// Add the remaining (directly-bound) handlers
+			cur = this;
 			if ( delegateCount < handlers.length ) {
-				handlerQueue.push( { elem: this, handlers: handlers.slice( delegateCount ) } );
+				handlerQueue.push( { elem: cur, handlers: handlers.slice( delegateCount ) } );
 			}
 
 			return handlerQueue;
@@ -28870,7 +28968,19 @@
 
 			// Add which for click: 1 === left; 2 === middle; 3 === right
 			if ( !event.which && button !== undefined && rmouseEvent.test( event.type ) ) {
-				return ( button & 1 ? 1 : ( button & 2 ? 3 : ( button & 4 ? 2 : 0 ) ) );
+				if ( button & 1 ) {
+					return 1;
+				}
+
+				if ( button & 2 ) {
+					return 3;
+				}
+
+				if ( button & 4 ) {
+					return 2;
+				}
+
+				return 0;
 			}
 
 			return event.which;
@@ -29626,15 +29736,17 @@
 	}
 
 	function augmentWidthOrHeight( elem, name, extra, isBorderBox, styles ) {
-		var i = extra === ( isBorderBox ? "border" : "content" ) ?
-
-			// If we already have the right measurement, avoid augmentation
-			4 :
-
-			// Otherwise initialize for horizontal or vertical properties
-			name === "width" ? 1 : 0,
-
+		var i,
 			val = 0;
+
+		// If we already have the right measurement, avoid augmentation
+		if ( extra === ( isBorderBox ? "border" : "content" ) ) {
+			i = 4;
+
+		// Otherwise initialize for horizontal or vertical properties
+		} else {
+			i = name === "width" ? 1 : 0;
+		}
 
 		for ( ; i < 4; i += 2 ) {
 
@@ -30488,7 +30600,7 @@
 				callback = props;
 				props = [ "*" ];
 			} else {
-				props = props.match( rnotwhite );
+				props = props.match( rnothtmlwhite );
 			}
 
 			var prop,
@@ -30526,9 +30638,14 @@
 			opt.duration = 0;
 
 		} else {
-			opt.duration = typeof opt.duration === "number" ?
-				opt.duration : opt.duration in jQuery.fx.speeds ?
-					jQuery.fx.speeds[ opt.duration ] : jQuery.fx.speeds._default;
+			if ( typeof opt.duration !== "number" ) {
+				if ( opt.duration in jQuery.fx.speeds ) {
+					opt.duration = jQuery.fx.speeds[ opt.duration ];
+
+				} else {
+					opt.duration = jQuery.fx.speeds._default;
+				}
+			}
 		}
 
 		// Normalize opt.queue - true/undefined/null -> "fx"
@@ -30878,7 +30995,10 @@
 		removeAttr: function( elem, value ) {
 			var name,
 				i = 0,
-				attrNames = value && value.match( rnotwhite );
+
+				// Attribute names can contain non-HTML whitespace characters
+				// https://html.spec.whatwg.org/multipage/syntax.html#attributes-2
+				attrNames = value && value.match( rnothtmlwhite );
 
 			if ( attrNames && elem.nodeType === 1 ) {
 				while ( ( name = attrNames[ i++ ] ) ) {
@@ -30985,12 +31105,19 @@
 					// Use proper attribute retrieval(#12072)
 					var tabindex = jQuery.find.attr( elem, "tabindex" );
 
-					return tabindex ?
-						parseInt( tabindex, 10 ) :
+					if ( tabindex ) {
+						return parseInt( tabindex, 10 );
+					}
+
+					if (
 						rfocusable.test( elem.nodeName ) ||
-							rclickable.test( elem.nodeName ) && elem.href ?
-								0 :
-								-1;
+						rclickable.test( elem.nodeName ) &&
+						elem.href
+					) {
+						return 0;
+					}
+
+					return -1;
 				}
 			}
 		},
@@ -31007,9 +31134,14 @@
 	// on the option
 	// The getter ensures a default option is selected
 	// when in an optgroup
+	// eslint rule "no-unused-expressions" is disabled for this code
+	// since it considers such accessions noop
 	if ( !support.optSelected ) {
 		jQuery.propHooks.selected = {
 			get: function( elem ) {
+
+				/* eslint no-unused-expressions: "off" */
+
 				var parent = elem.parentNode;
 				if ( parent && parent.parentNode ) {
 					parent.parentNode.selectedIndex;
@@ -31017,6 +31149,9 @@
 				return null;
 			},
 			set: function( elem ) {
+
+				/* eslint no-unused-expressions: "off" */
+
 				var parent = elem.parentNode;
 				if ( parent ) {
 					parent.selectedIndex;
@@ -31047,7 +31182,13 @@
 
 
 
-	var rclass = /[\t\r\n\f]/g;
+		// Strip and collapse whitespace according to HTML spec
+		// https://html.spec.whatwg.org/multipage/infrastructure.html#strip-and-collapse-whitespace
+		function stripAndCollapse( value ) {
+			var tokens = value.match( rnothtmlwhite ) || [];
+			return tokens.join( " " );
+		}
+
 
 	function getClass( elem ) {
 		return elem.getAttribute && elem.getAttribute( "class" ) || "";
@@ -31065,12 +31206,11 @@
 			}
 
 			if ( typeof value === "string" && value ) {
-				classes = value.match( rnotwhite ) || [];
+				classes = value.match( rnothtmlwhite ) || [];
 
 				while ( ( elem = this[ i++ ] ) ) {
 					curValue = getClass( elem );
-					cur = elem.nodeType === 1 &&
-						( " " + curValue + " " ).replace( rclass, " " );
+					cur = elem.nodeType === 1 && ( " " + stripAndCollapse( curValue ) + " " );
 
 					if ( cur ) {
 						j = 0;
@@ -31081,7 +31221,7 @@
 						}
 
 						// Only assign if different to avoid unneeded rendering.
-						finalValue = jQuery.trim( cur );
+						finalValue = stripAndCollapse( cur );
 						if ( curValue !== finalValue ) {
 							elem.setAttribute( "class", finalValue );
 						}
@@ -31107,14 +31247,13 @@
 			}
 
 			if ( typeof value === "string" && value ) {
-				classes = value.match( rnotwhite ) || [];
+				classes = value.match( rnothtmlwhite ) || [];
 
 				while ( ( elem = this[ i++ ] ) ) {
 					curValue = getClass( elem );
 
 					// This expression is here for better compressibility (see addClass)
-					cur = elem.nodeType === 1 &&
-						( " " + curValue + " " ).replace( rclass, " " );
+					cur = elem.nodeType === 1 && ( " " + stripAndCollapse( curValue ) + " " );
 
 					if ( cur ) {
 						j = 0;
@@ -31127,7 +31266,7 @@
 						}
 
 						// Only assign if different to avoid unneeded rendering.
-						finalValue = jQuery.trim( cur );
+						finalValue = stripAndCollapse( cur );
 						if ( curValue !== finalValue ) {
 							elem.setAttribute( "class", finalValue );
 						}
@@ -31162,7 +31301,7 @@
 					// Toggle individual class names
 					i = 0;
 					self = jQuery( this );
-					classNames = value.match( rnotwhite ) || [];
+					classNames = value.match( rnothtmlwhite ) || [];
 
 					while ( ( className = classNames[ i++ ] ) ) {
 
@@ -31205,10 +31344,8 @@
 			className = " " + selector + " ";
 			while ( ( elem = this[ i++ ] ) ) {
 				if ( elem.nodeType === 1 &&
-					( " " + getClass( elem ) + " " ).replace( rclass, " " )
-						.indexOf( className ) > -1
-				) {
-					return true;
+					( " " + stripAndCollapse( getClass( elem ) ) + " " ).indexOf( className ) > -1 ) {
+						return true;
 				}
 			}
 
@@ -31219,8 +31356,7 @@
 
 
 
-	var rreturn = /\r/g,
-		rspaces = /[\x20\t\r\n\f]+/g;
+	var rreturn = /\r/g;
 
 	jQuery.fn.extend( {
 		val: function( value ) {
@@ -31241,13 +31377,13 @@
 
 					ret = elem.value;
 
-					return typeof ret === "string" ?
+					// Handle most common string cases
+					if ( typeof ret === "string" ) {
+						return ret.replace( rreturn, "" );
+					}
 
-						// Handle most common string cases
-						ret.replace( rreturn, "" ) :
-
-						// Handle cases where value is null/undef or number
-						ret == null ? "" : ret;
+					// Handle cases where value is null/undef or number
+					return ret == null ? "" : ret;
 				}
 
 				return;
@@ -31304,20 +31440,24 @@
 						// option.text throws exceptions (#14686, #14858)
 						// Strip and collapse whitespace
 						// https://html.spec.whatwg.org/#strip-and-collapse-whitespace
-						jQuery.trim( jQuery.text( elem ) ).replace( rspaces, " " );
+						stripAndCollapse( jQuery.text( elem ) );
 				}
 			},
 			select: {
 				get: function( elem ) {
-					var value, option,
+					var value, option, i,
 						options = elem.options,
 						index = elem.selectedIndex,
 						one = elem.type === "select-one",
 						values = one ? null : [],
-						max = one ? index + 1 : options.length,
-						i = index < 0 ?
-							max :
-							one ? index : 0;
+						max = one ? index + 1 : options.length;
+
+					if ( index < 0 ) {
+						i = max;
+
+					} else {
+						i = one ? index : 0;
+					}
 
 					// Loop through all the selected options
 					for ( ; i < max; i++ ) {
@@ -31771,13 +31911,17 @@
 			.map( function( i, elem ) {
 				var val = jQuery( this ).val();
 
-				return val == null ?
-					null :
-					jQuery.isArray( val ) ?
-						jQuery.map( val, function( val ) {
-							return { name: elem.name, value: val.replace( rCRLF, "\r\n" ) };
-						} ) :
-						{ name: elem.name, value: val.replace( rCRLF, "\r\n" ) };
+				if ( val == null ) {
+					return null;
+				}
+
+				if ( jQuery.isArray( val ) ) {
+					return jQuery.map( val, function( val ) {
+						return { name: elem.name, value: val.replace( rCRLF, "\r\n" ) };
+					} );
+				}
+
+				return { name: elem.name, value: val.replace( rCRLF, "\r\n" ) };
 			} ).get();
 		}
 	} );
@@ -31786,7 +31930,7 @@
 	var
 		r20 = /%20/g,
 		rhash = /#.*$/,
-		rts = /([?&])_=[^&]*/,
+		rantiCache = /([?&])_=[^&]*/,
 		rheaders = /^(.*?):[ \t]*([^\r\n]*)$/mg,
 
 		// #7653, #8125, #8152: local protocol detection
@@ -31832,7 +31976,7 @@
 
 			var dataType,
 				i = 0,
-				dataTypes = dataTypeExpression.toLowerCase().match( rnotwhite ) || [];
+				dataTypes = dataTypeExpression.toLowerCase().match( rnothtmlwhite ) || [];
 
 			if ( jQuery.isFunction( func ) ) {
 
@@ -32300,7 +32444,7 @@
 			s.type = options.method || options.type || s.method || s.type;
 
 			// Extract dataTypes list
-			s.dataTypes = ( s.dataType || "*" ).toLowerCase().match( rnotwhite ) || [ "" ];
+			s.dataTypes = ( s.dataType || "*" ).toLowerCase().match( rnothtmlwhite ) || [ "" ];
 
 			// A cross-domain request is in order when the origin doesn't match the current origin.
 			if ( s.crossDomain == null ) {
@@ -32372,9 +32516,9 @@
 					delete s.data;
 				}
 
-				// Add anti-cache in uncached url if needed
+				// Add or update anti-cache param if needed
 				if ( s.cache === false ) {
-					cacheURL = cacheURL.replace( rts, "" );
+					cacheURL = cacheURL.replace( rantiCache, "$1" );
 					uncached = ( rquery.test( cacheURL ) ? "&" : "?" ) + "_=" + ( nonce++ ) + uncached;
 				}
 
@@ -33113,7 +33257,7 @@
 			off = url.indexOf( " " );
 
 		if ( off > -1 ) {
-			selector = jQuery.trim( url.slice( off ) );
+			selector = stripAndCollapse( url.slice( off ) );
 			url = url.slice( 0, off );
 		}
 
@@ -33505,7 +33649,6 @@
 
 
 
-
 	var
 
 		// Map over jQuery in case of overwrite
@@ -33534,6 +33677,9 @@
 	}
 
 
+
+
+
 	return jQuery;
 	} );
 
@@ -33548,15 +33694,15 @@
 	  value: true
 	});
 
-	var _classCallCheck2 = __webpack_require__(7);
+	var _classCallCheck2 = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"babel-runtime/helpers/classCallCheck\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 
 	var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
 
-	var _createClass2 = __webpack_require__(8);
+	var _createClass2 = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"babel-runtime/helpers/createClass\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 
 	var _createClass3 = _interopRequireDefault(_createClass2);
 
-	var _matterJs = __webpack_require__(27);
+	var _matterJs = __webpack_require__(7);
 
 	var _matterJs2 = _interopRequireDefault(_matterJs);
 
@@ -33602,358 +33748,49 @@
 
 /***/ },
 /* 7 */
-/***/ function(module, exports) {
-
-	"use strict";
-
-	exports.__esModule = true;
-
-	exports.default = function (instance, Constructor) {
-	  if (!(instance instanceof Constructor)) {
-	    throw new TypeError("Cannot call a class as a function");
-	  }
-	};
-
-/***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-
-	exports.__esModule = true;
-
-	var _defineProperty = __webpack_require__(9);
-
-	var _defineProperty2 = _interopRequireDefault(_defineProperty);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	exports.default = function () {
-	  function defineProperties(target, props) {
-	    for (var i = 0; i < props.length; i++) {
-	      var descriptor = props[i];
-	      descriptor.enumerable = descriptor.enumerable || false;
-	      descriptor.configurable = true;
-	      if ("value" in descriptor) descriptor.writable = true;
-	      (0, _defineProperty2.default)(target, descriptor.key, descriptor);
-	    }
-	  }
-
-	  return function (Constructor, protoProps, staticProps) {
-	    if (protoProps) defineProperties(Constructor.prototype, protoProps);
-	    if (staticProps) defineProperties(Constructor, staticProps);
-	    return Constructor;
-	  };
-	}();
-
-/***/ },
-/* 9 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = { "default": __webpack_require__(10), __esModule: true };
-
-/***/ },
-/* 10 */
-/***/ function(module, exports, __webpack_require__) {
-
-	__webpack_require__(11);
-	var $Object = __webpack_require__(14).Object;
-	module.exports = function defineProperty(it, key, desc){
-	  return $Object.defineProperty(it, key, desc);
-	};
-
-/***/ },
-/* 11 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var $export = __webpack_require__(12);
-	// 19.1.2.4 / 15.2.3.6 Object.defineProperty(O, P, Attributes)
-	$export($export.S + $export.F * !__webpack_require__(22), 'Object', {defineProperty: __webpack_require__(18).f});
-
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var global    = __webpack_require__(13)
-	  , core      = __webpack_require__(14)
-	  , ctx       = __webpack_require__(15)
-	  , hide      = __webpack_require__(17)
-	  , PROTOTYPE = 'prototype';
-
-	var $export = function(type, name, source){
-	  var IS_FORCED = type & $export.F
-	    , IS_GLOBAL = type & $export.G
-	    , IS_STATIC = type & $export.S
-	    , IS_PROTO  = type & $export.P
-	    , IS_BIND   = type & $export.B
-	    , IS_WRAP   = type & $export.W
-	    , exports   = IS_GLOBAL ? core : core[name] || (core[name] = {})
-	    , expProto  = exports[PROTOTYPE]
-	    , target    = IS_GLOBAL ? global : IS_STATIC ? global[name] : (global[name] || {})[PROTOTYPE]
-	    , key, own, out;
-	  if(IS_GLOBAL)source = name;
-	  for(key in source){
-	    // contains in native
-	    own = !IS_FORCED && target && target[key] !== undefined;
-	    if(own && key in exports)continue;
-	    // export native or passed
-	    out = own ? target[key] : source[key];
-	    // prevent global pollution for namespaces
-	    exports[key] = IS_GLOBAL && typeof target[key] != 'function' ? source[key]
-	    // bind timers to global for call from export context
-	    : IS_BIND && own ? ctx(out, global)
-	    // wrap global constructors for prevent change them in library
-	    : IS_WRAP && target[key] == out ? (function(C){
-	      var F = function(a, b, c){
-	        if(this instanceof C){
-	          switch(arguments.length){
-	            case 0: return new C;
-	            case 1: return new C(a);
-	            case 2: return new C(a, b);
-	          } return new C(a, b, c);
-	        } return C.apply(this, arguments);
-	      };
-	      F[PROTOTYPE] = C[PROTOTYPE];
-	      return F;
-	    // make static versions for prototype methods
-	    })(out) : IS_PROTO && typeof out == 'function' ? ctx(Function.call, out) : out;
-	    // export proto methods to core.%CONSTRUCTOR%.methods.%NAME%
-	    if(IS_PROTO){
-	      (exports.virtual || (exports.virtual = {}))[key] = out;
-	      // export proto methods to core.%CONSTRUCTOR%.prototype.%NAME%
-	      if(type & $export.R && expProto && !expProto[key])hide(expProto, key, out);
-	    }
-	  }
-	};
-	// type bitmap
-	$export.F = 1;   // forced
-	$export.G = 2;   // global
-	$export.S = 4;   // static
-	$export.P = 8;   // proto
-	$export.B = 16;  // bind
-	$export.W = 32;  // wrap
-	$export.U = 64;  // safe
-	$export.R = 128; // real proto method for `library` 
-	module.exports = $export;
-
-/***/ },
-/* 13 */
-/***/ function(module, exports) {
-
-	// https://github.com/zloirock/core-js/issues/86#issuecomment-115759028
-	var global = module.exports = typeof window != 'undefined' && window.Math == Math
-	  ? window : typeof self != 'undefined' && self.Math == Math ? self : Function('return this')();
-	if(typeof __g == 'number')__g = global; // eslint-disable-line no-undef
-
-/***/ },
-/* 14 */
-/***/ function(module, exports) {
-
-	var core = module.exports = {version: '2.4.0'};
-	if(typeof __e == 'number')__e = core; // eslint-disable-line no-undef
-
-/***/ },
-/* 15 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// optional / simple context binding
-	var aFunction = __webpack_require__(16);
-	module.exports = function(fn, that, length){
-	  aFunction(fn);
-	  if(that === undefined)return fn;
-	  switch(length){
-	    case 1: return function(a){
-	      return fn.call(that, a);
-	    };
-	    case 2: return function(a, b){
-	      return fn.call(that, a, b);
-	    };
-	    case 3: return function(a, b, c){
-	      return fn.call(that, a, b, c);
-	    };
-	  }
-	  return function(/* ...args */){
-	    return fn.apply(that, arguments);
-	  };
-	};
-
-/***/ },
-/* 16 */
-/***/ function(module, exports) {
-
-	module.exports = function(it){
-	  if(typeof it != 'function')throw TypeError(it + ' is not a function!');
-	  return it;
-	};
-
-/***/ },
-/* 17 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var dP         = __webpack_require__(18)
-	  , createDesc = __webpack_require__(26);
-	module.exports = __webpack_require__(22) ? function(object, key, value){
-	  return dP.f(object, key, createDesc(1, value));
-	} : function(object, key, value){
-	  object[key] = value;
-	  return object;
-	};
-
-/***/ },
-/* 18 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var anObject       = __webpack_require__(19)
-	  , IE8_DOM_DEFINE = __webpack_require__(21)
-	  , toPrimitive    = __webpack_require__(25)
-	  , dP             = Object.defineProperty;
-
-	exports.f = __webpack_require__(22) ? Object.defineProperty : function defineProperty(O, P, Attributes){
-	  anObject(O);
-	  P = toPrimitive(P, true);
-	  anObject(Attributes);
-	  if(IE8_DOM_DEFINE)try {
-	    return dP(O, P, Attributes);
-	  } catch(e){ /* empty */ }
-	  if('get' in Attributes || 'set' in Attributes)throw TypeError('Accessors not supported!');
-	  if('value' in Attributes)O[P] = Attributes.value;
-	  return O;
-	};
-
-/***/ },
-/* 19 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var isObject = __webpack_require__(20);
-	module.exports = function(it){
-	  if(!isObject(it))throw TypeError(it + ' is not an object!');
-	  return it;
-	};
-
-/***/ },
-/* 20 */
-/***/ function(module, exports) {
-
-	module.exports = function(it){
-	  return typeof it === 'object' ? it !== null : typeof it === 'function';
-	};
-
-/***/ },
-/* 21 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = !__webpack_require__(22) && !__webpack_require__(23)(function(){
-	  return Object.defineProperty(__webpack_require__(24)('div'), 'a', {get: function(){ return 7; }}).a != 7;
-	});
-
-/***/ },
-/* 22 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// Thank's IE8 for his funny defineProperty
-	module.exports = !__webpack_require__(23)(function(){
-	  return Object.defineProperty({}, 'a', {get: function(){ return 7; }}).a != 7;
-	});
-
-/***/ },
-/* 23 */
-/***/ function(module, exports) {
-
-	module.exports = function(exec){
-	  try {
-	    return !!exec();
-	  } catch(e){
-	    return true;
-	  }
-	};
-
-/***/ },
-/* 24 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var isObject = __webpack_require__(20)
-	  , document = __webpack_require__(13).document
-	  // in old IE typeof document.createElement is 'object'
-	  , is = isObject(document) && isObject(document.createElement);
-	module.exports = function(it){
-	  return is ? document.createElement(it) : {};
-	};
-
-/***/ },
-/* 25 */
-/***/ function(module, exports, __webpack_require__) {
-
-	// 7.1.1 ToPrimitive(input [, PreferredType])
-	var isObject = __webpack_require__(20);
-	// instead of the ES6 spec version, we didn't implement @@toPrimitive case
-	// and the second argument - flag - preferred type is a string
-	module.exports = function(it, S){
-	  if(!isObject(it))return it;
-	  var fn, val;
-	  if(S && typeof (fn = it.toString) == 'function' && !isObject(val = fn.call(it)))return val;
-	  if(typeof (fn = it.valueOf) == 'function' && !isObject(val = fn.call(it)))return val;
-	  if(!S && typeof (fn = it.toString) == 'function' && !isObject(val = fn.call(it)))return val;
-	  throw TypeError("Can't convert object to primitive value");
-	};
-
-/***/ },
-/* 26 */
-/***/ function(module, exports) {
-
-	module.exports = function(bitmap, value){
-	  return {
-	    enumerable  : !(bitmap & 1),
-	    configurable: !(bitmap & 2),
-	    writable    : !(bitmap & 4),
-	    value       : value
-	  };
-	};
-
-/***/ },
-/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Matter = module.exports = {};
 	Matter.version = 'master';
 
-	Matter.Body = __webpack_require__(28);
-	Matter.Composite = __webpack_require__(35);
-	Matter.World = __webpack_require__(43);
+	Matter.Body = __webpack_require__(8);
+	Matter.Composite = __webpack_require__(15);
+	Matter.World = __webpack_require__(23);
 
-	Matter.Contact = __webpack_require__(39);
-	Matter.Detector = __webpack_require__(40);
-	Matter.Grid = __webpack_require__(37);
-	Matter.Pairs = __webpack_require__(45);
-	Matter.Pair = __webpack_require__(38);
-	Matter.Query = __webpack_require__(46);
-	Matter.Resolver = __webpack_require__(48);
-	Matter.SAT = __webpack_require__(41);
+	Matter.Contact = __webpack_require__(19);
+	Matter.Detector = __webpack_require__(20);
+	Matter.Grid = __webpack_require__(17);
+	Matter.Pairs = __webpack_require__(25);
+	Matter.Pair = __webpack_require__(18);
+	Matter.Query = __webpack_require__(26);
+	Matter.Resolver = __webpack_require__(28);
+	Matter.SAT = __webpack_require__(21);
 
-	Matter.Constraint = __webpack_require__(44);
-	Matter.MouseConstraint = __webpack_require__(49);
+	Matter.Constraint = __webpack_require__(24);
+	Matter.MouseConstraint = __webpack_require__(29);
 
-	Matter.Common = __webpack_require__(31);
-	Matter.Engine = __webpack_require__(51);
-	Matter.Events = __webpack_require__(33);
-	Matter.Mouse = __webpack_require__(50);
-	Matter.Runner = __webpack_require__(53);
-	Matter.Sleeping = __webpack_require__(32);
+	Matter.Common = __webpack_require__(11);
+	Matter.Engine = __webpack_require__(31);
+	Matter.Events = __webpack_require__(13);
+	Matter.Mouse = __webpack_require__(30);
+	Matter.Runner = __webpack_require__(33);
+	Matter.Sleeping = __webpack_require__(12);
 
 	// @if DEBUG
-	Matter.Metrics = __webpack_require__(52);
+	Matter.Metrics = __webpack_require__(32);
 	// @endif
 
-	Matter.Bodies = __webpack_require__(47);
-	Matter.Composites = __webpack_require__(54);
+	Matter.Bodies = __webpack_require__(27);
+	Matter.Composites = __webpack_require__(34);
 
-	Matter.Axes = __webpack_require__(42);
-	Matter.Bounds = __webpack_require__(36);
-	Matter.Svg = __webpack_require__(55);
-	Matter.Vector = __webpack_require__(30);
-	Matter.Vertices = __webpack_require__(29);
+	Matter.Axes = __webpack_require__(22);
+	Matter.Bounds = __webpack_require__(16);
+	Matter.Svg = __webpack_require__(35);
+	Matter.Vector = __webpack_require__(10);
+	Matter.Vertices = __webpack_require__(9);
 
-	Matter.Render = __webpack_require__(34);
-	Matter.RenderPixi = __webpack_require__(56);
+	Matter.Render = __webpack_require__(14);
+	Matter.RenderPixi = __webpack_require__(36);
 
 	// aliases
 
@@ -33967,7 +33804,7 @@
 
 
 /***/ },
-/* 28 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -33984,13 +33821,13 @@
 
 	module.exports = Body;
 
-	var Vertices = __webpack_require__(29);
-	var Vector = __webpack_require__(30);
-	var Sleeping = __webpack_require__(32);
-	var Render = __webpack_require__(34);
-	var Common = __webpack_require__(31);
-	var Bounds = __webpack_require__(36);
-	var Axes = __webpack_require__(42);
+	var Vertices = __webpack_require__(9);
+	var Vector = __webpack_require__(10);
+	var Sleeping = __webpack_require__(12);
+	var Render = __webpack_require__(14);
+	var Common = __webpack_require__(11);
+	var Bounds = __webpack_require__(16);
+	var Axes = __webpack_require__(22);
 
 	(function() {
 
@@ -35100,7 +34937,7 @@
 
 
 /***/ },
-/* 29 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -35117,8 +34954,8 @@
 
 	module.exports = Vertices;
 
-	var Vector = __webpack_require__(30);
-	var Common = __webpack_require__(31);
+	var Vector = __webpack_require__(10);
+	var Common = __webpack_require__(11);
 
 	(function() {
 
@@ -35549,7 +35386,7 @@
 
 
 /***/ },
-/* 30 */
+/* 10 */
 /***/ function(module, exports) {
 
 	/**
@@ -35789,7 +35626,7 @@
 	})();
 
 /***/ },
-/* 31 */
+/* 11 */
 /***/ function(module, exports) {
 
 	/**
@@ -36118,7 +35955,7 @@
 
 
 /***/ },
-/* 32 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -36131,7 +35968,7 @@
 
 	module.exports = Sleeping;
 
-	var Events = __webpack_require__(33);
+	var Events = __webpack_require__(13);
 
 	(function() {
 
@@ -36253,7 +36090,7 @@
 
 
 /***/ },
-/* 33 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -36268,7 +36105,7 @@
 
 	module.exports = Events;
 
-	var Common = __webpack_require__(31);
+	var Common = __webpack_require__(11);
 
 	(function() {
 
@@ -36369,7 +36206,7 @@
 
 
 /***/ },
-/* 34 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -36384,12 +36221,12 @@
 
 	module.exports = Render;
 
-	var Common = __webpack_require__(31);
-	var Composite = __webpack_require__(35);
-	var Bounds = __webpack_require__(36);
-	var Events = __webpack_require__(33);
-	var Grid = __webpack_require__(37);
-	var Vector = __webpack_require__(30);
+	var Common = __webpack_require__(11);
+	var Composite = __webpack_require__(15);
+	var Bounds = __webpack_require__(16);
+	var Events = __webpack_require__(13);
+	var Grid = __webpack_require__(17);
+	var Vector = __webpack_require__(10);
 
 	(function() {
 	    
@@ -37711,7 +37548,7 @@
 
 
 /***/ },
-/* 35 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -37729,9 +37566,9 @@
 
 	module.exports = Composite;
 
-	var Events = __webpack_require__(33);
-	var Common = __webpack_require__(31);
-	var Body = __webpack_require__(28);
+	var Events = __webpack_require__(13);
+	var Common = __webpack_require__(11);
+	var Body = __webpack_require__(8);
 
 	(function() {
 
@@ -38375,7 +38212,7 @@
 
 
 /***/ },
-/* 36 */
+/* 16 */
 /***/ function(module, exports) {
 
 	/**
@@ -38501,7 +38338,7 @@
 
 
 /***/ },
-/* 37 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -38514,9 +38351,9 @@
 
 	module.exports = Grid;
 
-	var Pair = __webpack_require__(38);
-	var Detector = __webpack_require__(40);
-	var Common = __webpack_require__(31);
+	var Pair = __webpack_require__(18);
+	var Detector = __webpack_require__(20);
+	var Common = __webpack_require__(11);
 
 	(function() {
 
@@ -38828,7 +38665,7 @@
 
 
 /***/ },
-/* 38 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -38841,7 +38678,7 @@
 
 	module.exports = Pair;
 
-	var Contact = __webpack_require__(39);
+	var Contact = __webpack_require__(19);
 
 	(function() {
 	    
@@ -38960,7 +38797,7 @@
 
 
 /***/ },
-/* 39 */
+/* 19 */
 /***/ function(module, exports) {
 
 	/**
@@ -39004,7 +38841,7 @@
 
 
 /***/ },
-/* 40 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -39019,9 +38856,9 @@
 
 	module.exports = Detector;
 
-	var SAT = __webpack_require__(41);
-	var Pair = __webpack_require__(38);
-	var Bounds = __webpack_require__(36);
+	var SAT = __webpack_require__(21);
+	var Pair = __webpack_require__(18);
+	var Bounds = __webpack_require__(16);
 
 	(function() {
 
@@ -39117,7 +38954,7 @@
 
 
 /***/ },
-/* 41 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -39132,8 +38969,8 @@
 
 	module.exports = SAT;
 
-	var Vertices = __webpack_require__(29);
-	var Vector = __webpack_require__(30);
+	var Vertices = __webpack_require__(9);
+	var Vector = __webpack_require__(10);
 
 	(function() {
 
@@ -39388,7 +39225,7 @@
 
 
 /***/ },
-/* 42 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -39401,8 +39238,8 @@
 
 	module.exports = Axes;
 
-	var Vector = __webpack_require__(30);
-	var Common = __webpack_require__(31);
+	var Vector = __webpack_require__(10);
+	var Common = __webpack_require__(11);
 
 	(function() {
 
@@ -39458,7 +39295,7 @@
 
 
 /***/ },
-/* 43 */
+/* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -39478,9 +39315,9 @@
 
 	module.exports = World;
 
-	var Composite = __webpack_require__(35);
-	var Constraint = __webpack_require__(44);
-	var Common = __webpack_require__(31);
+	var Composite = __webpack_require__(15);
+	var Constraint = __webpack_require__(24);
+	var Common = __webpack_require__(11);
 
 	(function() {
 
@@ -39594,7 +39431,7 @@
 
 
 /***/ },
-/* 44 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -39619,12 +39456,12 @@
 
 	module.exports = Constraint;
 
-	var Vertices = __webpack_require__(29);
-	var Vector = __webpack_require__(30);
-	var Sleeping = __webpack_require__(32);
-	var Bounds = __webpack_require__(36);
-	var Axes = __webpack_require__(42);
-	var Common = __webpack_require__(31);
+	var Vertices = __webpack_require__(9);
+	var Vector = __webpack_require__(10);
+	var Sleeping = __webpack_require__(12);
+	var Bounds = __webpack_require__(16);
+	var Axes = __webpack_require__(22);
+	var Common = __webpack_require__(11);
 
 	(function() {
 
@@ -39994,7 +39831,7 @@
 
 
 /***/ },
-/* 45 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -40007,8 +39844,8 @@
 
 	module.exports = Pairs;
 
-	var Pair = __webpack_require__(38);
-	var Common = __webpack_require__(31);
+	var Pair = __webpack_require__(18);
+	var Common = __webpack_require__(11);
 
 	(function() {
 	    
@@ -40156,7 +39993,7 @@
 
 
 /***/ },
-/* 46 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -40171,11 +40008,11 @@
 
 	module.exports = Query;
 
-	var Vector = __webpack_require__(30);
-	var SAT = __webpack_require__(41);
-	var Bounds = __webpack_require__(36);
-	var Bodies = __webpack_require__(47);
-	var Vertices = __webpack_require__(29);
+	var Vector = __webpack_require__(10);
+	var SAT = __webpack_require__(21);
+	var Bounds = __webpack_require__(16);
+	var Bodies = __webpack_require__(27);
+	var Vertices = __webpack_require__(9);
 
 	(function() {
 
@@ -40274,7 +40111,7 @@
 
 
 /***/ },
-/* 47 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -40292,11 +40129,11 @@
 
 	module.exports = Bodies;
 
-	var Vertices = __webpack_require__(29);
-	var Common = __webpack_require__(31);
-	var Body = __webpack_require__(28);
-	var Bounds = __webpack_require__(36);
-	var Vector = __webpack_require__(30);
+	var Vertices = __webpack_require__(9);
+	var Common = __webpack_require__(11);
+	var Body = __webpack_require__(8);
+	var Bounds = __webpack_require__(16);
+	var Vector = __webpack_require__(10);
 
 	(function() {
 
@@ -40608,7 +40445,7 @@
 	})();
 
 /***/ },
-/* 48 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -40621,10 +40458,10 @@
 
 	module.exports = Resolver;
 
-	var Vertices = __webpack_require__(29);
-	var Vector = __webpack_require__(30);
-	var Common = __webpack_require__(31);
-	var Bounds = __webpack_require__(36);
+	var Vertices = __webpack_require__(9);
+	var Vector = __webpack_require__(10);
+	var Common = __webpack_require__(11);
+	var Bounds = __webpack_require__(16);
 
 	(function() {
 
@@ -40958,7 +40795,7 @@
 
 
 /***/ },
-/* 49 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -40974,15 +40811,15 @@
 
 	module.exports = MouseConstraint;
 
-	var Vertices = __webpack_require__(29);
-	var Sleeping = __webpack_require__(32);
-	var Mouse = __webpack_require__(50);
-	var Events = __webpack_require__(33);
-	var Detector = __webpack_require__(40);
-	var Constraint = __webpack_require__(44);
-	var Composite = __webpack_require__(35);
-	var Common = __webpack_require__(31);
-	var Bounds = __webpack_require__(36);
+	var Vertices = __webpack_require__(9);
+	var Sleeping = __webpack_require__(12);
+	var Mouse = __webpack_require__(30);
+	var Events = __webpack_require__(13);
+	var Detector = __webpack_require__(20);
+	var Constraint = __webpack_require__(24);
+	var Composite = __webpack_require__(15);
+	var Common = __webpack_require__(11);
+	var Bounds = __webpack_require__(16);
 
 	(function() {
 
@@ -41225,7 +41062,7 @@
 
 
 /***/ },
-/* 50 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -41238,7 +41075,7 @@
 
 	module.exports = Mouse;
 
-	var Common = __webpack_require__(31);
+	var Common = __webpack_require__(11);
 
 	(function() {
 
@@ -41432,7 +41269,7 @@
 
 
 /***/ },
-/* 51 */
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -41449,18 +41286,18 @@
 
 	module.exports = Engine;
 
-	var World = __webpack_require__(43);
-	var Sleeping = __webpack_require__(32);
-	var Resolver = __webpack_require__(48);
-	var Render = __webpack_require__(34);
-	var Pairs = __webpack_require__(45);
-	var Metrics = __webpack_require__(52);
-	var Grid = __webpack_require__(37);
-	var Events = __webpack_require__(33);
-	var Composite = __webpack_require__(35);
-	var Constraint = __webpack_require__(44);
-	var Common = __webpack_require__(31);
-	var Body = __webpack_require__(28);
+	var World = __webpack_require__(23);
+	var Sleeping = __webpack_require__(12);
+	var Resolver = __webpack_require__(28);
+	var Render = __webpack_require__(14);
+	var Pairs = __webpack_require__(25);
+	var Metrics = __webpack_require__(32);
+	var Grid = __webpack_require__(17);
+	var Events = __webpack_require__(13);
+	var Composite = __webpack_require__(15);
+	var Constraint = __webpack_require__(24);
+	var Common = __webpack_require__(11);
+	var Body = __webpack_require__(8);
 
 	(function() {
 
@@ -41932,7 +41769,7 @@
 
 
 /***/ },
-/* 52 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// @if DEBUG
@@ -41945,8 +41782,8 @@
 
 	module.exports = Metrics;
 
-	var Composite = __webpack_require__(35);
-	var Common = __webpack_require__(31);
+	var Composite = __webpack_require__(15);
+	var Common = __webpack_require__(11);
 
 	(function() {
 
@@ -42031,7 +41868,7 @@
 
 
 /***/ },
-/* 53 */
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -42050,9 +41887,9 @@
 
 	module.exports = Runner;
 
-	var Events = __webpack_require__(33);
-	var Engine = __webpack_require__(51);
-	var Common = __webpack_require__(31);
+	var Events = __webpack_require__(13);
+	var Engine = __webpack_require__(31);
+	var Common = __webpack_require__(11);
 
 	(function() {
 
@@ -42354,7 +42191,7 @@
 
 
 /***/ },
-/* 54 */
+/* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -42370,11 +42207,11 @@
 
 	module.exports = Composites;
 
-	var Composite = __webpack_require__(35);
-	var Constraint = __webpack_require__(44);
-	var Common = __webpack_require__(31);
-	var Body = __webpack_require__(28);
-	var Bodies = __webpack_require__(47);
+	var Composite = __webpack_require__(15);
+	var Constraint = __webpack_require__(24);
+	var Common = __webpack_require__(11);
+	var Body = __webpack_require__(8);
+	var Bodies = __webpack_require__(27);
 
 	(function() {
 
@@ -42687,7 +42524,7 @@
 
 
 /***/ },
-/* 55 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -42704,7 +42541,7 @@
 
 	module.exports = Svg;
 
-	var Bounds = __webpack_require__(36);
+	var Bounds = __webpack_require__(16);
 
 	(function() {
 
@@ -42909,7 +42746,7 @@
 	})();
 
 /***/ },
-/* 56 */
+/* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -42925,8 +42762,8 @@
 
 	module.exports = RenderPixi;
 
-	var Composite = __webpack_require__(35);
-	var Common = __webpack_require__(31);
+	var Composite = __webpack_require__(15);
+	var Common = __webpack_require__(11);
 
 	(function() {
 
@@ -43422,7 +43259,7 @@
 
 
 /***/ },
-/* 57 */
+/* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -43431,11 +43268,11 @@
 	  value: true
 	});
 
-	var _classCallCheck2 = __webpack_require__(7);
+	var _classCallCheck2 = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"babel-runtime/helpers/classCallCheck\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 
 	var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
 
-	var _createClass2 = __webpack_require__(8);
+	var _createClass2 = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"babel-runtime/helpers/createClass\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 
 	var _createClass3 = _interopRequireDefault(_createClass2);
 
@@ -43472,7 +43309,7 @@
 	        //Checks to see if basket was made
 
 	        for (var i = 0; i < this.ballArray.length; i++) {
-	          if (this.physics.Matter.Bounds.contains(this.ballArray[i].body.bounds, { x: 420, y: 265 })) {
+	          if (true) {
 	            if (!this.basketsMade.includes(this.ballArray[i].body.id)) {
 	              this.basketsMade.push(this.ballArray[i].body.id);
 	            }
@@ -43490,7 +43327,7 @@
 	exports.default = Hoop;
 
 /***/ },
-/* 58 */
+/* 38 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -43499,11 +43336,11 @@
 	  value: true
 	});
 
-	var _classCallCheck2 = __webpack_require__(7);
+	var _classCallCheck2 = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"babel-runtime/helpers/classCallCheck\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 
 	var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
 
-	var _createClass2 = __webpack_require__(8);
+	var _createClass2 = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"babel-runtime/helpers/createClass\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 
 	var _createClass3 = _interopRequireDefault(_createClass2);
 
@@ -43511,7 +43348,7 @@
 
 	var _createjsCollection2 = _interopRequireDefault(_createjsCollection);
 
-	var _matterJs = __webpack_require__(27);
+	var _matterJs = __webpack_require__(7);
 
 	var _matterJs2 = _interopRequireDefault(_matterJs);
 
