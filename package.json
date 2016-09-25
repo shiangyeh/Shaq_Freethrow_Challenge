@@ -7,7 +7,7 @@
   "main": "app/shaq.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ashcza/Shaq_Freethrow_Challenge.git"
+    "url": "git+https://github.com/shiangyeh/Shaq_Freethrow_Challenge.git"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
