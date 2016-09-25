@@ -1,0 +1,162 @@
+<html>
+  <head>
+    <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet" />
+    <style type="text/css">
+
+      p {
+        font-family: 'Press Start 2P', cursive;
+        font-size: 18px;
+        color: white;
+      }
+      body {
+        background-color: black;
+      }
+      .canvasContainer {
+        width: 100px;
+        margin-bottom: 400px;
+      }
+      #courtCanvas {
+        z-index: 0;
+        position: absolute;
+        left: 100px;
+        top: 100px;
+        width: 1200px
+
+      }
+      #netCanvas {
+        z-index: 1;
+        position: absolute;
+        left: 100px;
+        top: 100px;
+        width: 1200px;
+      }
+      .stats {
+        z-index: 10;
+        display: flex;
+        justify-content: space-between;;
+        color: white;
+        width: 593px;
+        margin-left: 0px;
+        margin-right: 0px;
+        padding-left: 100px;
+        padding-right: 100px;
+        padding-top: 50px;
+      }
+
+      .statsRight {
+        z-index: 11;
+      }
+      .gameLayout {
+        width: 1030px;
+        margin: 0 auto;
+        display: flex;
+        margin-left: 100px;
+        margin-top: 100px
+    }
+
+      .statsLeft {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .shaqImage {
+        display: block;
+        max-width: 265px;
+        max-height: 232px;
+        width: auto;
+        height: auto;
+      }
+      .subStats{
+        display: flex;
+      }
+      .instructions {
+        font-size: 24px;
+        color: white;
+        padding-left: 45px;
+        padding-top: 102px;
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        width: 264px;
+        margin-top: 60px;
+      }
+
+      .canvasLayout {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .endGame {
+        z-index: 12;
+        width: 700px;
+        margin: 0 auto;
+        margin-top: 18px;
+      }
+      .gameOver {
+        font-size: 32px;
+        padding-left: 59px;
+        margin-top: 58px;
+      }
+      .powerMeter {
+        width: 180px;
+        }
+      .powerMeter:-moz-meter-optimum::-moz-meter-bar {
+          background:indianred;
+      }
+      .powerMeter:-moz-meter-sub-optimum::-moz-meter-bar {
+          background: antiquewhite;
+      }
+      .powerMeter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
+          background: steelblue;
+      }
+      #remaining {
+        margin-right: 10px;
+      }
+      #score {
+        margin-right: 10px;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div class="gameLayout">
+
+      <div class="canvasLayout">
+        <div class="stats">
+          <div class="statsLeft">
+            <p>Shot Power</p>
+            <meter class="powerMeter" min="0" low="30" optimum="50" high="70" max="100" value="50"></meter>
+          </div>
+
+          <div class="statsRight">
+            <div class="subStats">
+              <p id="remaining">0</p>
+              <p>Shots Left</p>
+            </div>
+            <div class="subStats">
+              <p id="score">0</p>
+              <p>Free Throws Made</p>
+            </div>
+          </div>
+        </div>
+        <div class="endGame">
+          <p class="gameOver">Game Over. Press Space Bar to Play Again!</p>
+        </div>
+      </div>
+
+      <div class="sidebar">
+        <img src="images/shaqlogo.png" alt="shaq" class="shaqImage"/>
+        <p class="instructions">Press Spacebar to Shoot</p>
+      <div>
+    </div>
+
+    <div class="canvasContainer">
+      <canvas id="courtCanvas" width="1000" height="750"></canvas>
+      <canvas id="netCanvas" width="1000" height="750"></canvas>
+    </div>
+
+    <script src="dist/bundle.js"></script>
+  </body>
+</html>
